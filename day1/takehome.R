@@ -7,27 +7,37 @@ skimr::skim(covid_cases)
 
 covid_cases <- readRDS("~/GitHub/Workshop-R/day1/data/covid_cases.rds")
 
+# Relative path
+
+covid_cases <- readRDS(file.path(".", "day1", "data", "covid_cases.rds"))
+
+
 # Task 2: Simple computations using data set
 
-first_report_date <- min(covid_cases$date) 
-last_report_date <- max(covid_cases$date)
+class(covid_cases$date) # check the data type
+
+first_report_date <- min(covid_cases$date, na.rm=TRUE) # remove NA values
+last_report_date <- max(covid_cases$date, na.rm=TRUE)
 
 covid_cases$case_global <- rowSums(covid_cases[,-1])
 
-covid_cases$percent_chn <- (covid_cases$cases_chn/covid_cases$case_global)*100
+rowSums(covid_cases[, c(2:ncol(covid_cases))])  # calculate from the 2nd column until the last col
+# rowSums(covid_cases[, grep("case_", covid_cases)))])
+
+covid_cases$percent_chn <- round((covid_cases$cases_chn/covid_cases$case_global)*100,2)
 
 # Task 3: Create a function
 
 compute_percent <- function(data, country_code) {
   
-  country_col <- paste0("cases_", country_code)
+  country_col <- paste0("cases_", country_code)     # paste0 = paste(, sep = "")
   percent_col <- paste0("percent_", country_code)
   data[[percent_col]] <- (data[[country_col]]/data$case_global)
 
   return(data)
 }
 
-covid_cases <- compute_percent(covid_cases, "vnm")
+covid_cases[["percent_vnm"]] <- compute_percent(covid_cases, "vnm")
 covid_cases <- compute_percent(covid_cases, "usa")
 covid_cases <- compute_percent(covid_cases, "sgp")
 print(covid_cases[,c("date", "percent_vnm", "percent_usa", "percent_sgp")])
@@ -75,9 +85,11 @@ plot_country(data = covid_cases, country_code = "usa", country = "USA",color_bar
 # Task 4: Generate data summary
 
 skimr::skim(covid_cases[c("cases_chn", "cases_vnm", "cases_usa", "cases_sgp")])
+library(skimr)
+skim(covid_cases, cases_chn, cases_vnm, cases_usa, cases_sgp)
 
 # There were no missing values in these countries.
-# The mean number of cases in the USA was the highest (8166 cases), the second highest was China (913 cases)
+# The mean number of cases in the USA was the highest (8166 cases), the second highest was China (913 cases).
 # The lowest average cases among these 4 countries was Vietnam with just ~ 3 cases.
 # The USA also had the largest standard deviation (12 331) while Vietnam had the smallest (4.53).
 # China had the highest median with 128 cases, while Vietnam had the lowest, with just 1 case.
@@ -86,5 +98,23 @@ skimr::skim(covid_cases[c("cases_chn", "cases_vnm", "cases_usa", "cases_sgp")])
 # but the USA also had a bar on the right, showing that some days had higher cases counts, meaning that cases numbers fluctuated over time.
 
 
+compute_percent <- function(data, country_code) {
+  
+  # Construct column names
+  country_col <- paste0("cases_", country_code)     
+  percent_col <- paste0("percent_", country_code)
+  
+  # Check if the country_col exists in the data
+  if (!country_col %in% colnames(data)) {
+    stop(paste("Column", country_col, "not found in the data!"))
+  }
+  
+  # Calculate the percentage and add to the data
+  data[[percent_col]] <- (data[[country_col]] / data$case_global)
+  
+  return(data)
+}
+
+compute_percent(covid_cases, "reu")
 
 
